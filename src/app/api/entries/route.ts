@@ -34,8 +34,27 @@ type ProcessedEntry = {
   }[]
 }
 
+type ApiErrorLike = {
+  status?: number
+  code?: string
+  message?: string
+}
+
 function getUserId(session: unknown) {
   return (session as { user?: { id?: string } } | null)?.user?.id
+}
+
+function getApiError(error: unknown): ApiErrorLike {
+  if (error && typeof error === 'object') {
+    const candidate = error as ApiErrorLike
+    return {
+      status: candidate.status,
+      code: candidate.code,
+      message: candidate.message,
+    }
+  }
+
+  return { message: String(error) }
 }
 
 function stripMarkdownFences(content: string) {
@@ -147,7 +166,18 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json(entry)
-  } catch {
+  } catch (error) {
+    const apiError = getApiError(error)
+    console.error('Entry AI processing failed', apiError)
+
+    if (apiError.status === 401) {
+      return NextResponse.json({ error: 'OpenAI API key is invalid or missing' }, { status: 500 })
+    }
+
+    if (apiError.status === 429 || apiError.code === 'insufficient_quota') {
+      return NextResponse.json({ error: 'OpenAI quota or billing limit reached' }, { status: 503 })
+    }
+
     return NextResponse.json({ error: 'AI processing failed' }, { status: 500 })
   }
 }
