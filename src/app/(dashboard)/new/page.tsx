@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { format } from 'date-fns'
@@ -58,8 +58,6 @@ export default function NewEntryPage() {
   const rawInput = activeTab === 'voice' ? transcript : writtenText
   const inputType = activeTab === 'voice' ? 'voice' : 'text'
   const canGenerate = rawInput.trim().length >= 20 && !loading
-
-  const characterCount = useMemo(() => rawInput.length, [rawInput])
 
   useEffect(() => {
     if (!loading) {
